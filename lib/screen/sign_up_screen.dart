@@ -27,6 +27,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _email;
   String _password;
   String _profileImage = "";
+  bool isLoading = false;
 
   void _goToChatScreen(String userId) {
     Navigator.of(context)
@@ -54,21 +55,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final reference =
             FirebaseStorage.instance.ref().child(authResult.user.uid + ".jpg");
         await reference.putFile(File(_profileImage)).onComplete;
-        _goToChatScreen(authResult.user.uid);
+        final url = await reference.getDownloadURL();
         await Firestore.instance
             .collection(FirebaseConstants.USERS_COLLECTION)
             .document(authResult.user.uid)
             .setData({
           FirebaseConstants.DOCUMENT_NAME: _fullName,
-          FirebaseConstants.DOCUMENT_PIC_FIELD: reference.getDownloadURL()
+          FirebaseConstants.DOCUMENT_PIC_FIELD: url
         });
+        _goToChatScreen(authResult.user.uid);
       }
     } on PlatformException catch (error) {
       Scaffold.of(_formKey.currentState.context)
           .showSnackBar(SnackBar(content: Text(error.message)));
     } catch (error) {
       Scaffold.of(_formKey.currentState.context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
+          .showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -89,8 +91,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _pickImage() async {
-    final pickedImage =
-        await ImagePicker().getImage(source: ImageSource.camera);
+    final pickedImage = await ImagePicker()
+        .getImage(source: ImageSource.camera, imageQuality: 40);
     if (pickedImage != null)
       setState(() {
         _profileImage = pickedImage.path;
@@ -199,18 +201,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Container(
                   width: double.infinity,
                   height: 48,
-                  child: RaisedButton(
-                    onPressed: () => _saveForm(),
-                    child: Text(
-                      ScreenState.LOGIN == _currentScreenState
-                          ? "Login"
-                          : "Sign Up",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    color: Theme.of(context).primaryColor,
-                  ),
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : RaisedButton(
+                          onPressed: () => _saveForm(),
+                          child: Text(
+                            ScreenState.LOGIN == _currentScreenState
+                                ? "Login"
+                                : "Sign Up",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          color: Theme.of(context).primaryColor,
+                        ),
                 ),
                 Spacer(),
                 Center(
