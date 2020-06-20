@@ -1,3 +1,4 @@
+import 'package:chat_appv2/screen/sign_up_screen.dart';
 import 'package:chat_appv2/utils/firebase_constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends StatelessWidget {
   final String userID;
+  static const String route = "/chat-screen";
 
   ChatScreen({@required this.userID});
 
@@ -16,7 +18,11 @@ class ChatScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         leading: IconButton(
             icon: Icon(Icons.keyboard_return),
-            onPressed: () => FirebaseAuth.instance.signOut()),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => SignUpScreen()));
+            }),
       ),
       backgroundColor: Colors.white,
       body: Column(
@@ -67,22 +73,28 @@ class MessageDisplayWidget extends StatelessWidget {
         children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment:
+                isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: <Widget>[
               if (!isMe)
-                CircleAvatar(backgroundColor: Colors.grey, radius: 15,),
+                CircleAvatar(
+                  backgroundColor: Colors.grey,
+                  radius: 15,
+                ),
               Container(
                   constraints: BoxConstraints(
                       maxWidth: MediaQuery.of(context).size.width - 60),
                   padding: EdgeInsets.all(16),
-                  margin: isMe ?  EdgeInsets.all(0) : EdgeInsets.only(left: 3),
+                  margin: isMe ? EdgeInsets.all(0) : EdgeInsets.only(left: 3),
                   decoration: BoxDecoration(
-                      color: isMe ? Colors.grey : Theme.of(context).primaryColor,
+                      color:
+                          isMe ? Colors.grey : Theme.of(context).primaryColor,
                       shape: BoxShape.rectangle,
                       borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(10),
                           topRight: Radius.circular(10),
-                          bottomLeft: isMe ? Radius.circular(10) : Radius.circular(0),
+                          bottomLeft:
+                              isMe ? Radius.circular(10) : Radius.circular(0),
                           bottomRight:
                               isMe ? Radius.circular(0) : Radius.circular(10))),
                   child: Text(messageText))

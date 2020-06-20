@@ -1,8 +1,13 @@
+import 'dart:io';
+
+import 'package:chat_appv2/screen/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:chat_appv2/utils/firebase_constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 enum ScreenState { LOGIN, SIGN_UP }
 
@@ -21,23 +26,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _fullName;
   String _email;
   String _password;
+  String _profileImage = "";
+
+  void _goToChatScreen(String userId) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => ChatScreen(userID: userId)));
+  }
 
   Future<void> _saveForm() async {
     try {
+      if (_currentScreenState == ScreenState.SIGN_UP && _profileImage.isEmpty) {
+        Scaffold.of(_formKey.currentState.context).showSnackBar(
+            SnackBar(content: Text("Please select profile image")));
+      }
+
       if (!_formKey.currentState.validate()) {
         return;
       }
       _formKey.currentState.save();
       if (_currentScreenState == ScreenState.LOGIN) {
-        await _auth.signInWithEmailAndPassword(
+        var authResult = await _auth.signInWithEmailAndPassword(
             email: _email, password: _password);
+        _goToChatScreen(authResult.user.uid);
       } else {
         var authResult = await _auth.createUserWithEmailAndPassword(
             email: _email, password: _password);
+        final reference =
+            FirebaseStorage.instance.ref().child(authResult.user.uid + ".jpg");
+        await reference.putFile(File(_profileImage)).onComplete;
+        _goToChatScreen(authResult.user.uid);
         await Firestore.instance
             .collection(FirebaseConstants.USERS_COLLECTION)
             .document(authResult.user.uid)
-            .setData({FirebaseConstants.DOCUMENT_NAME: _fullName});
+            .setData({
+          FirebaseConstants.DOCUMENT_NAME: _fullName,
+          FirebaseConstants.DOCUMENT_PIC_FIELD: reference.getDownloadURL()
+        });
       }
     } on PlatformException catch (error) {
       Scaffold.of(_formKey.currentState.context)
@@ -64,9 +88,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  void _pickImage() async {
+    final pickedImage =
+        await ImagePicker().getImage(source: ImageSource.camera);
+    if (pickedImage != null)
+      setState(() {
+        _profileImage = pickedImage.path;
+      });
+  }
+
   Widget _buildInputField() {
     return Column(
       children: <Widget>[
+        if (ScreenState.SIGN_UP == _currentScreenState)
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: FileImage(File(_profileImage)),
+            child: IconButton(
+                icon: Icon(Icons.camera_enhance), onPressed: _pickImage),
+          ),
+        if (ScreenState.SIGN_UP == _currentScreenState) SizedBox(height: 10),
         if (ScreenState.SIGN_UP == _currentScreenState)
           TextFormField(
             textInputAction: TextInputAction.next,
@@ -150,7 +191,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         color: Colors.grey),
                   ),
                 ),
-                SizedBox(height: 80),
+                (ScreenState.SIGN_UP == _currentScreenState)
+                    ? SizedBox(height: 20)
+                    : SizedBox(height: 80),
                 _buildInputField(),
                 SizedBox(height: 30),
                 Container(

@@ -12,8 +12,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(primarySwatch: Colors.lightBlue),
-      home: StreamBuilder<FirebaseUser>(
-          stream: FirebaseAuth.instance.onAuthStateChanged,
+      home: FutureBuilder<FirebaseUser>(
+          future: FirebaseAuth.instance.currentUser(),
           builder: (context, snapshot) {
             return snapshot.data != null
                 ? ChatScreen(userID: snapshot.data.uid)

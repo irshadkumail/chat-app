@@ -5,4 +5,6 @@ class FirebaseConstants {
   static const DOCUMENT_UID_FIELD = "uid";
   static const DOCUMENT_CREATED_FIELD = "created";
   static const DOCUMENT_NAME = "name";
+  static const DOCUMENT_PIC_FIELD = "pic";
+
 }
